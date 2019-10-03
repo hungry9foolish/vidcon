@@ -1,0 +1,16 @@
+{
+  "name": "vidcon",
+  "version": "1.0.0",
+  "description": "Convert video files from and to different formats ",
+  "main": "main.js",
+  "scripts": {
+    "run": "node main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hungry9foolish@gmail.com",
+  "license": "ISC",
+  "dependencies": {
+    "fluent-ffmpeg": "^2.1.2",
+    "minimist": "^1.2.0"
+  }
+}
