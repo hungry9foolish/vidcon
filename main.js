@@ -26,7 +26,21 @@ if (os.platform() == 'win32') {
     console.log('binarypath', path.join(binarypath, 'ffmpeg.exe'));
 }
 
-function consoleEncode(fileName, targetFormat) {
+function metaFileExtension(targetFormat) {
+    switch (targetFormat) {
+        case 'hls':
+            return 'm3u';
+            break;
+        case 'dash':
+            return 'mpd';
+        default:
+            throw Error(`${targetFormat} is not a supported target format`);
+
+
+    }
+}
+
+function consoleEncode(fileName, targetFormat, fileLocation) {
     // height, bitrate
     const sizes = [
         [240, 350],
@@ -35,14 +49,21 @@ function consoleEncode(fileName, targetFormat) {
         [1080, 4000],
     ];
     const fallback = [720, 2500];
-
+    const targetExtension = metaFileExtension(targetFormat);
+    if (!fileLocation) {
+        fileLocation = __dirname;
+    }
+    else if (!path.isAbsolute(fileLocation)) {
+        fileLocation = path.join(__dirname, fileLocation);
+    }
     let name = path.basename(fileName, path.extname(fileName));
-    const targetdir = path.join(__dirname, name);
-    const sourcefn = path.resolve(fileName);
-
-    console.log('source', sourcefn);
-    console.log('info', sizes);
-    console.log('info', targetdir);
+    const targetdir = path.join(fileLocation, name, `${targetFormat}`);
+    const sourcefn = path.resolve(path.join(fileLocation, fileName));
+    const targetfn = path.join(targetdir, `${name}.${targetExtension}`);
+    console.log('INFO', 'source', sourcefn);
+    console.log('INFO', 'sizes', sizes);
+    console.log('INFO', 'targetDirectory', targetdir);
+    console.log('INFO', 'target filename', targetfn);
 
     try {
         var targetdirInfo = fs.statSync(targetdir);
@@ -59,7 +80,7 @@ function consoleEncode(fileName, targetFormat) {
         cwd: targetdir
     });
 
-    var targetfn = path.join(targetdir, `${name}.mpd`);
+
 
     proc
         .output(targetfn)
@@ -132,4 +153,5 @@ function consoleEncode(fileName, targetFormat) {
     return proc.run();
 }
 
-consoleEncode(args['fileName'], args['targetExtension']);
+console.log(args);
+consoleEncode(args['fileName'], args['targetExtension'], args['fileLocation']);
