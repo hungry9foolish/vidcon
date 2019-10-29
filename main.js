@@ -30,7 +30,6 @@ function metaFileExtension(targetFormat) {
     switch (targetFormat) {
         case 'hls':
             return 'm3u';
-            break;
         case 'dash':
             return 'mpd';
         default:
