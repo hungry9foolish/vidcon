@@ -1,8 +1,10 @@
 const express = require('express');
+var bodyParser = require('body-parser')
 const router = require('./api/router');
 
 
 const app = express();
+app.use(bodyParser.json());
 const port = 5000;
 
 app.use('/', router);
