@@ -18,9 +18,3 @@ Clone this repository and use `npm install` to install all dependencies.
 user@host:~$ npm run start:watch
 ```
 
-
-```console
-user@host:~$ echo a
-a
-```
-
