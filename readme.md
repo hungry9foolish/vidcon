@@ -18,3 +18,8 @@ Clone this repository and use `npm install` to install all dependencies.
 user@host:~$ npm run start:watch
 ```
 
+### AWS integration
+The application can be deployed a microservice and works in conjunction with an S3 location from where it pulls video and pushes them back after conversion.
+
+### Supported Formats
+The application can currently convert to HLS and Dash formats.
