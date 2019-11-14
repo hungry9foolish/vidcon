@@ -1,3 +1,5 @@
+# :tv: vidcon 
+
 ### Getting Started
 Clone this repository and use `npm install` to install all dependencies.
 
