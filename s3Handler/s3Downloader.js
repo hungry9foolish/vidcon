@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
+const winston = require('../winston');
 
 //const filePath = './data/downloaded.json';
 //const bucketName = 'your.bucket.name';
@@ -15,14 +16,15 @@ const downloadFile = (filePath, bucketName, key) => {
     };
     const remoteFilePath = key.split('/');
     const fileName = remoteFilePath[remoteFilePath.length-1];
+    winston.debug("Downloading from S3", params)
     s3.getObject(params, (err, data) => {
-        console.log(err);
         if (err){
+            winston.error(err);
             throw `${err.code} : ${err.message}`;
         }
         else{
             fs.writeFileSync(filePath+"/"+fileName, data.Body);
-            console.log(`${fileName} has been created at ${filePath}`);
+            winston.debug(`${fileName} has been created at ${filePath}`);
         }
     });
 };
