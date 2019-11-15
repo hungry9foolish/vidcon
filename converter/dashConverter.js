@@ -4,6 +4,13 @@ class DashConverter extends Converter{
     constructor(){
         super();
     }
+    
+    getExtension(){
+        return 'mpd';
+    }
+    getFormatName(){
+        return 'dash';
+    }
 }
 
 module.exports = converterHOC(DashConverter);

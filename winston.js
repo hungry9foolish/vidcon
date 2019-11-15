@@ -20,11 +20,23 @@ var options = {
             format.json()
         ),
     },
+    console: {
+        level: 'debug',
+        filename: `./logs/error.log`,
+        handleExceptions: true,
+        format: format.combine(
+            format.timestamp({
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }),
+            format.errors({ stack: true }),
+            format.simple(),
+            format.colorize()
+        ),
+    },
     morganLogger: {
         level: 'info',
         format: format.combine(
             format.simple(),
-            format.splat(),
         ),
         filename: './logs/http.log'
     }
@@ -32,7 +44,7 @@ var options = {
 
 winston.loggers.add('morganLogger', {
     transports: [
-        new transports.File(options.morganLogger)
+        new transports.File({ ...options.file, ...options.morganLogger})
     ]
 });
 
@@ -43,21 +55,14 @@ const logger = createLogger({
         // - Write all logs error (and below) to `quick-start-error.log`.
         //
         new transports.File(options.file),
-        new transports.File({ ...options.file, filename: './logs/combined.log', level: 'info' })
+        new transports.File({ ...options.file, filename: './logs/combined.log', level: 'info' }),
+        new transports.File({ ...options.file, filename: './logs/debug.log', level: 'debug', format: format.combine(format.simple(), format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'})) })
     ],
     exitOnError: false
 });
 
 if (process.env.NODE_ENV !== 'production') {
-    logger.add(new transports.Console({
-        format: format.combine(
-            format.colorize(),
-            format.simple(),
-            format.timestamp({
-                format: 'YYYY-MM-DD HH:mm:ss'
-            }),
-        )
-    }));
+    logger.add(new transports.Console(options.console));
 }
 
 // create a stream object with a 'write' function that will be used by `morgan`

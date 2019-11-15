@@ -7,7 +7,7 @@ const router = require('./api/router');
 
 const app = express();
 app.use(bodyParser.json());
-app.use(morgan('dev', { stream: winston.stream }));
+app.use(morgan('combined', { stream: winston.stream }));
 const port = 5000;
 
 app.use('/', router);
