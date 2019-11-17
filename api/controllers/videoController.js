@@ -1,5 +1,4 @@
 //const winston = require('../winston');
-const { default: PQueue } = require('p-queue');
 const appRoot = require('app-root-path');
 const s3Video = require('../models/s3Video');
 const s3Downloader = require('../../s3Handler/s3Downloader');
