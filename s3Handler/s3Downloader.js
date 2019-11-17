@@ -25,7 +25,7 @@ const downloadFile = async (filePath, bucketName, key) => {
         return fileName;
     })
     .catch((err) => {
-        winston.error(err);
+        winston.error(err.toString());
         throw `${err.code} : ${err.message}`;
     })
 };
