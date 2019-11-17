@@ -1,6 +1,6 @@
 const DashConverter = require('./dashConverter');
 const HLSConverter = require('./hlsConverter');
-const MP4Converter = require('./hlsConverter')
+const MP4Converter = require('./mpeg4Converter')
 class converterFactory {
     static supportedTypes() {
         return {

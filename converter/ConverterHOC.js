@@ -10,7 +10,7 @@ const converterHOC = (Converter) => class {
         this.ffmpeg = ffmpegInit();
         this.converter = new Converter();
         this.setupFileDetails(fileName, fileLocation);
-        this.ffmpegProc = this.withFallback(this.setupFFMPEGproc());
+        this.ffmpegProc = this.setupFFMPEGproc();
     }
 
     fallbackSizeBitrate() {
@@ -145,8 +145,10 @@ const converterHOC = (Converter) => class {
         winston.debug('sizes', sizes);
         winston.debug(`targetDirectory: ${this.targetdir}`);
         winston.debug(`target filename: ${this.targetfn}`);
-        new Promise(resolve => resolve(this.ffmpegProc.run()))
-        .then(() => {});
+        return new Promise((resolve, reject) => {
+            this.ffmpegProc.on('end', ()=> resolve());
+            this.ffmpegProc.run();
+        });
     }
 }
 module.exports = converterHOC; 

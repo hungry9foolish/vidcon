@@ -21,7 +21,7 @@ var options = {
         ),
     },
     console: {
-        level: 'debug',
+        level: 'info',
         filename: `./logs/error.log`,
         handleExceptions: true,
         format: format.combine(

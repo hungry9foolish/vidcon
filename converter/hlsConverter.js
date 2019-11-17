@@ -8,7 +8,6 @@ class HlsConverter extends Converter{
     getExtension(){
         return 'm3u8';
     }
-
     getFormatName(){
         return 'hls';
     }
