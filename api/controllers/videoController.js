@@ -52,12 +52,7 @@ const createVideoFromS3 = async (req, res) => {
     .then(response = {...response, bundle: `Creadted bundle for ${fileName}`});
 
     //Upload Package
-    let s3Location = path.dirname(req.body.key);
-    s3Location = s3Location.startsWith(".") ? s3Location.substring(1) : s3Location;
-    let s3FileName = path.basename(req.body.key, path.extname(req.body.key));
-    let s3UpoadKey = s3Location == ""? `${s3FileName}.zip`:`${s3Location}/${s3FileName}.zip`;
-    winston.info(`Uploading ${req.body.bucket}/${s3UpoadKey}`);
-    await uploader(s3UpoadKey, req.body.bucket, `${fileLocation}/${fileName}`)
+    await uploadPackage(req, fileLocation, fileName)
     .then((data)=> {
         winston.info(`Uploaded : ${data.Location}`);
         response = {...response, uploaded: data.Location};
@@ -75,6 +70,17 @@ const convertVideo = async function (fileLocation, fileName) {
        ConverterFactory.getConverter(ConverterFactory.supportedTypes().DASH, fileName, fileLocation).convert(),
        ConverterFactory.getConverter(ConverterFactory.supportedTypes().MP4, fileName, fileLocation).convert()
     ]);
+}
+
+const uploadPackage = function(req, fileLocation, fileName){
+    let s3DownloadKey = req.body.key;
+    let s3DownloadBucket = req.body.bucket;
+    let s3Location = path.dirname(s3DownloadKey);
+    s3Location = s3Location.startsWith(".") ? s3Location.substring(1) : s3Location;
+    let s3FileName = path.basename(s3DownloadKey, path.extname(s3DownloadKey));
+    let s3UpoadKey = s3Location == ""? `${s3FileName}.zip`:`${s3Location}/${s3FileName}.zip`;
+    winston.info(`Uploading ${s3DownloadBucket}/${s3UpoadKey}`);
+    return uploader(s3UpoadKey, s3DownloadBucket, `${fileLocation}/${fileName}`);
 }
 
 module.exports = createVideoFromS3;
