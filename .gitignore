@@ -67,4 +67,6 @@ typings/
 .next
 
 # video output directory
-videos/
+videos/*
+#keep the videos folder for easy installation
+!videos/.gitkeep
