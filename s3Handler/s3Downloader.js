@@ -7,15 +7,12 @@ const winston = require('../winston');
 //const key = 'data/data.json';
 
 var s3 = new AWS.S3({ accessKeyId: process.env.S3_DOWNLOAD_ACCESS_KEY, secretAccessKey: process.env.S3_DOWNLOAD_ACCESS_SECRET });
-const downloadFile = async (filePath, bucketName, key) => {
-
+const downloadFile = async (filePath, bucketName, key, fileName, fileType) => {
 
     const params = {
         Bucket: bucketName,
-        Key: key
+        Key: key,
     };
-    const remoteFilePath = key.split('/');
-    const fileName = remoteFilePath[remoteFilePath.length-1];
     winston.debug("Downloading from S3", params)
     await s3.getObject(params)
     .promise()
@@ -27,7 +24,7 @@ const downloadFile = async (filePath, bucketName, key) => {
     .catch((err) => {
         winston.error(err.toString());
         throw `${err.code} : ${err.message}`;
-    })
+    });
 };
 
 module.exports.downloadFile = downloadFile;

@@ -12,11 +12,12 @@ const winston = require('../../winston');
 const createVideoFromS3 = async (req, res) => {
     const fileLocation = `${appRoot.path}/videos`;
     let fileName = path.basename(req.body.key);
+    fileName = getFileName(fileName, req.body.fileType);
     let response = {};
 
     //Download file
     winston.info(`Downloading file ${req.body.key}`);
-    await s3Downloader.downloadFile(fileLocation, req.body.bucket, req.body.key)
+    await s3Downloader.downloadFile(fileLocation, req.body.bucket, req.body.key, fileName,  req.body.fileType)
     .catch((err)=>{
         const error = `Could not download ${req.body.bucket}/${req.body.key}`;
         winston.error(error);
@@ -82,5 +83,20 @@ const uploadPackage = function(req, fileLocation, fileName){
     winston.info(`Uploading ${s3DownloadBucket}/${s3UpoadKey}`);
     return uploader(s3UpoadKey, s3DownloadBucket, `${fileLocation}/${fileName}`);
 }
+
+const getFileName = function(fileName, fileType){
+    if(!fileType){
+        return fileName;
+    }
+    const fileExt = path.extname(fileName);
+    if(!fileExt){
+        fileName = fileName + "." + fileType;
+    }
+    //if the downloaded file already has an extension don't change it
+
+    return fileName;
+}
+
+
 
 module.exports = createVideoFromS3;
