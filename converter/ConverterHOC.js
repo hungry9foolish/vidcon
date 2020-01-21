@@ -3,6 +3,7 @@ const fs = require('fs');
 const appRoot = require('app-root-path');
 const ffmpegInit = require('./ffmpegSetup');
 const winston = require('../winston');
+const statusMonitor = require('../statusMonitor');
 
 
 const converterHOC = (Converter) => class {
@@ -139,14 +140,24 @@ const converterHOC = (Converter) => class {
         
     }
 
-    convert() {
+    convert(statMonitor) {
         const sizes = this.supportedSizeBitrate();
         winston.debug(`source: ${this.sourcefn}`);
         winston.debug('sizes', sizes);
         winston.debug(`targetDirectory: ${this.targetdir}`);
         winston.debug(`target filename: ${this.targetfn}`);
         return new Promise((resolve, reject) => {
-            this.ffmpegProc.on('end', ()=> resolve());
+            this.ffmpegProc.on('start', () => {
+                statMonitor.updateFileTypeStatus(this.converter.getFormatName(), statusMonitor.STATUSES.STARTED);
+            });
+            this.ffmpegProc.on('end', ()=> {
+                statMonitor.updateFileTypeStatus(this.converter.getFormatName(), statusMonitor.STATUSES.COMPLETED);
+                resolve();
+            });
+            this.ffmpegProc.on('error', (err) => {
+                statMonitor.updateFileTypeStatus(this.converter.getFormatName(), statusMonitor.STATUSES.ERROR);
+                reject(err);
+            });
             this.ffmpegProc.run();
         });
     }

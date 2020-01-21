@@ -9,6 +9,7 @@ const uploader = require('../../s3Handler/s3Uploader');
 const folderUploader = require('../../s3Handler/s3FolderUploader');
 const Converter = require('../../converter/Converter');
 const winston = require('../../winston');
+const statusMonitor = require('../../statusMonitor');
 
 const createVideoFromS3 = async (req, res) => {    
     const bucket = req.body.bucket;
@@ -19,6 +20,7 @@ const createVideoFromS3 = async (req, res) => {
     let fileName = path.basename(key);
     fileName = getFileName(fileName, fileType);
     let response = {};
+    const statMonitor = new statusMonitor.StatusMonitor(fileType, uploadBaseKey, bucket);
 
     //Download file
     winston.info(`Downloading file ${key}`);
@@ -27,52 +29,54 @@ const createVideoFromS3 = async (req, res) => {
         const error = `Could not download ${bucket}/${key}`;
         winston.error(error);
         winston.error(err.toString());
-        response = {download: error, error: err.toString()};
+        statMonitor.updateDownloadStatus(statusMonitor.STATUSES.ERROR, err.toString());
     })
     .then(()=>{
         let logMessage = `Succesfully downloaded ${bucket}/${key}`;
         winston.info(logMessage);
-        response = {...response, download: logMessage}
+        statMonitor.updateDownloadStatus(statusMonitor.STATUSES.COMPLETED, logMessage);
     });
 
     //Convert file
 
     winston.info(`Converting file ${fileName} at ${fileLocation}`);
-    await convertVideo(fileLocation, fileName)
+    await convertVideo(fileLocation, fileName, statMonitor)
     .catch(function (err) {
-        response = {
-            err: err.toString(),
-            stack: err.stack
-        };
+        statMonitor.updateConversionStatus(statusMonitor.STATUSES.ERROR, err.toString(), err.stack);
     })                    
     .then(() => {
         let logMessage = `${fileName} was successfully converted`;
         winston.info(logMessage);
-        response = {...response, convert: logMessage };
+        statMonitor.updateConversionStatus(statusMonitor.STATUSES.COMPLETED, logMessage);
     })
 
     //Upload Package
     const directoryToUpload = `${fileLocation}/${key}`;
+    let uploadLocation = bucket;
+    uploadLocation = uploadBaseKey ? `${uploadLocation}/${uploadBaseKey}` : uploadLocation;
+    uploadLocation = `${uploadLocation}/${key}`;
     await folderUploader(directoryToUpload, uploadBaseKey, bucket)    
     .then(()=> {
-        let uploadLocation = bucket;
-        uploadLocation = uploadBaseKey ? `${uploadLocation}/${uploadBaseKey}` : uploadLocation;
-        uploadLocation = `${uploadLocation}/${key}`;
-        winston.debug(`Uploaded : ${uploadLocation}`);
-        response = {...response, uploaded: uploadLocation};
+        const message = `Successfully Uploaded - ${uploadLocation}`;
+        winston.info(message);
+        statMonitor.updateUploadStatus(statusMonitor.STATUSES.COMPLETED, message);
     })
     .catch((err)=>{
-        response = {...response, uploaded: err.toString()}
+        const message = `Error Uploading - ${uploadLocation}, ${err.toString()}`;
+        statMonitor.updateUploadStatus(statusMonitor.STATUSES.ERROR, message, err.stack);
     });
 
-    res.send(response);
+    await statMonitor.writeStatusToS3(directoryToUpload, `${uploadBaseKey}/${key}`)
+    .then(() => {
+        res.send(statMonitor.getStatus());
+    });    
 }
 
-const convertVideo = async function (fileLocation, fileName) {    
+const convertVideo = async function (fileLocation, fileName, statMonitor) {    
     return await Promise.all([
-       ConverterFactory.getConverter(ConverterFactory.supportedTypes().HLS, fileName, fileLocation).convert(),
-       ConverterFactory.getConverter(ConverterFactory.supportedTypes().DASH, fileName, fileLocation).convert(),
-       ConverterFactory.getConverter(ConverterFactory.supportedTypes().MP4, fileName, fileLocation).convert()
+       ConverterFactory.getConverter(ConverterFactory.supportedTypes().HLS, fileName, fileLocation).convert(statMonitor),
+       ConverterFactory.getConverter(ConverterFactory.supportedTypes().DASH, fileName, fileLocation).convert(statMonitor),
+       ConverterFactory.getConverter(ConverterFactory.supportedTypes().MP4, fileName, fileLocation).convert(statMonitor)
     ]);
 }
 
