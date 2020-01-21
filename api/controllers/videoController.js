@@ -6,26 +6,31 @@ const s3Downloader = require('../../s3Handler/s3Downloader');
 const ConverterFactory = require('../../converter/converterFactory');
 const bundler = require('../../bundle');
 const uploader = require('../../s3Handler/s3Uploader');
+const folderUploader = require('../../s3Handler/s3FolderUploader');
 const Converter = require('../../converter/Converter');
 const winston = require('../../winston');
 
-const createVideoFromS3 = async (req, res) => {
+const createVideoFromS3 = async (req, res) => {    
+    const bucket = req.body.bucket;
+    const uploadBaseKey = req.body.uploadBaseKey;
+    const key = req.body.key;
+    const fileType = req.body.fileType;
     const fileLocation = `${appRoot.path}/videos`;
-    let fileName = path.basename(req.body.key);
-    fileName = getFileName(fileName, req.body.fileType);
+    let fileName = path.basename(key);
+    fileName = getFileName(fileName, fileType);
     let response = {};
 
     //Download file
-    winston.info(`Downloading file ${req.body.key}`);
-    await s3Downloader.downloadFile(fileLocation, req.body.bucket, req.body.key, fileName,  req.body.fileType)
+    winston.info(`Downloading file ${key}`);
+    await s3Downloader.downloadFile(fileLocation, bucket, key, fileName,  fileType)
     .catch((err)=>{
-        const error = `Could not download ${req.body.bucket}/${req.body.key}`;
+        const error = `Could not download ${bucket}/${key}`;
         winston.error(error);
         winston.error(err.toString());
         response = {download: error, error: err.toString()};
     })
     .then(()=>{
-        let logMessage = `Succesfully downloaded ${req.body.bucket}/${req.body.key}`;
+        let logMessage = `Succesfully downloaded ${bucket}/${key}`;
         winston.info(logMessage);
         response = {...response, download: logMessage}
     });
@@ -46,21 +51,19 @@ const createVideoFromS3 = async (req, res) => {
         response = {...response, convert: logMessage };
     })
 
-    //Create zip package
-    const bundle = `${fileLocation}/${fileName}`;
-    winston.info(`Bundling : ${bundle}`);
-    await bundler(fileLocation, fileName)
-    .then(response = {...response, bundle: `Creadted bundle for ${fileName}`});
-
     //Upload Package
-    await uploadPackage(req, fileLocation, fileName)
-    .then((data)=> {
-        winston.info(`Uploaded : ${data.Location}`);
-        response = {...response, uploaded: data.Location};
+    const directoryToUpload = `${fileLocation}/${key}`;
+    await folderUploader(directoryToUpload, uploadBaseKey, bucket)    
+    .then(()=> {
+        let uploadLocation = bucket;
+        uploadLocation = uploadBaseKey ? `${uploadLocation}/${uploadBaseKey}` : uploadLocation;
+        uploadLocation = `${uploadLocation}/${key}`;
+        winston.debug(`Uploaded : ${uploadLocation}`);
+        response = {...response, uploaded: uploadLocation};
     })
     .catch((err)=>{
         response = {...response, uploaded: err.toString()}
-    })
+    });
 
     res.send(response);
 }
@@ -71,17 +74,6 @@ const convertVideo = async function (fileLocation, fileName) {
        ConverterFactory.getConverter(ConverterFactory.supportedTypes().DASH, fileName, fileLocation).convert(),
        ConverterFactory.getConverter(ConverterFactory.supportedTypes().MP4, fileName, fileLocation).convert()
     ]);
-}
-
-const uploadPackage = function(req, fileLocation, fileName){
-    let s3DownloadKey = req.body.key;
-    let s3DownloadBucket = req.body.bucket;
-    let s3Location = path.dirname(s3DownloadKey);
-    s3Location = s3Location.startsWith(".") ? s3Location.substring(1) : s3Location;
-    let s3FileName = path.basename(s3DownloadKey, path.extname(s3DownloadKey));
-    let s3UpoadKey = s3Location == ""? `${s3FileName}.zip`:`${s3Location}/${s3FileName}.zip`;
-    winston.info(`Uploading ${s3DownloadBucket}/${s3UpoadKey}`);
-    return uploader(s3UpoadKey, s3DownloadBucket, `${fileLocation}/${fileName}`);
 }
 
 const getFileName = function(fileName, fileType){

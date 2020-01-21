@@ -152,5 +152,9 @@ function consoleEncode(fileName, targetFormat, fileLocation) {
     return proc.run();
 }
 
-console.log(args);
-consoleEncode(args['fileName'], args['targetExtension'], args['fileLocation']);
+//console.log(args);
+//consoleEncode(args['fileName'], args['targetExtension'], args['fileLocation']);
+
+const s3FolderUploader = require('./s3Handler/s3FolderUploader');
+const fileList = s3FolderUploader.fileWalker("videos/5762164d-9f87-4b16-8c68-a1a940c85f03");
+console.log(fileList);
