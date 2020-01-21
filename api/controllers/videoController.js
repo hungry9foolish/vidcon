@@ -13,7 +13,7 @@ const statusMonitor = require('../../statusMonitor');
 
 const createVideoFromS3 = async (req, res) => {    
     const bucket = req.body.bucket;
-    const uploadBaseKey = req.body.uploadBaseKey;
+    const uploadBaseKey = req.body.uploadBaseKey || "";
     const key = req.body.key;
     const fileType = req.body.fileType;
     const fileLocation = `${appRoot.path}/videos`;
