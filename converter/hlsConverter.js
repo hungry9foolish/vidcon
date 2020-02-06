@@ -11,6 +11,9 @@ class HlsConverter extends Converter{
     getFormatName(){
         return 'hls';
     }
+    getAdditionalOutputOptions(){
+        return ['-hls_list_size 0'];
+    }
 
 }
 

@@ -42,6 +42,8 @@ const createVideoFromS3 = async (req, res) => {
     winston.info(`Converting file ${fileName} at ${fileLocation}`);
     await convertVideo(fileLocation, fileName, statMonitor)
     .catch(function (err) {
+        winston.error(err.toString());
+        winston.error(err.stack);
         statMonitor.updateConversionStatus(statusMonitor.STATUSES.ERROR, err.toString(), err.stack);
     })                    
     .then(() => {

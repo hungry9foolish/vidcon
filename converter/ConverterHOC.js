@@ -14,10 +14,6 @@ const converterHOC = (Converter) => class {
         this.ffmpegProc = this.setupFFMPEGproc();
     }
 
-    fallbackSizeBitrate() {
-        return [720, 2500];
-    }
-
     supportedSizeBitrate() {
         return [
             [240, 350],
@@ -26,38 +22,27 @@ const converterHOC = (Converter) => class {
             [1080, 4000],];
     }
 
-    withFallback(proc) {
-
-        const fallback = this.fallbackSizeBitrate();
-        proc
-            .output(path.join(this.targetdir, `${this.filename}.mp4`))
-            .format('mp4')
-            .videoCodec('libx264')
-            .videoBitrate(fallback[1])
-            .size(`?x${fallback[0]}`)
-            .audioCodec('aac')
-            .audioChannels(2)
-            .audioFrequency(44100)
-            .audioBitrate(128)
-            .outputOptions([
-                '-preset veryfast',
-                '-movflags +faststart',
-                '-keyint_min 60',
-                '-refs 5',
-                '-g 60',
-                '-pix_fmt yuv420p',
-                '-sc_threshold 0',
-                '-profile:v main',
-            ]);
-
-        return proc;
-    }
-
     setupFFMPEGproc() {
         var proc = this.ffmpeg({
             source: this.sourcefn,
             cwd: this.targetdir
         });
+        let outputOptions = [
+            '-preset veryfast', //transcoding process : appropriating right amount of compute resources
+            '-keyint_min 60',  //after every 60 frames there is a key screen marker is placed in the metadata of the file, small values allow for higher rendition, high file size
+            '-g 60',
+            '-sc_threshold 0',
+            '-profile:v main',
+            '-use_template 1',
+            '-use_timeline 1',
+            '-b_strategy 0',
+            '-bf 1',
+            '-map 0:a',
+            '-b:a 96k'
+        ];
+        outputOptions.push(this.converter.getAdditionalOutputOptions());
+        winston.info(`${this.converter.getFormatName()} output options`);
+        winston.info(outputOptions);
         proc
             .output(this.targetfn)
             .format(this.converter.getFormatName())
@@ -65,19 +50,7 @@ const converterHOC = (Converter) => class {
             .audioCodec('aac')
             .audioChannels(2)
             .audioFrequency(44100)
-            .outputOptions([
-                '-preset veryfast', //transcoding process : appropriating right amount of compute resources
-                '-keyint_min 60',  //after every 60 frames there is a key screen marker is placed in the metadata of the file, small values allow for higher rendition, high file size
-                '-g 60',
-                '-sc_threshold 0',
-                '-profile:v main',
-                '-use_template 1',
-                '-use_timeline 1',
-                '-b_strategy 0',
-                '-bf 1',
-                '-map 0:a',
-                '-b:a 96k'
-            ]);
+            .outputOptions(outputOptions);
 
         proc.on('start', function (commandLine) {
             winston.debug(`Progress - Spawned Ffmpeg with command:   ${commandLine}`);
@@ -87,7 +60,7 @@ const converterHOC = (Converter) => class {
         }).on('end', function () {
             winston.debug('Complete');
         }).on('error', function (err) {
-            winston.error(err);
+            winston.error(err.toString());
         });
 
         const sizes = this.supportedSizeBitrate();
@@ -154,7 +127,8 @@ const converterHOC = (Converter) => class {
                 statMonitor.updateFileTypeStatus(this.converter.getFormatName(), statusMonitor.STATUSES.COMPLETED);
                 resolve();
             });
-            this.ffmpegProc.on('error', (err) => {
+            this.ffmpegProc.on('error', (err) => {                
+                winston.error(`Failed to convert ${this.converter.getFormatName()}`);
                 statMonitor.updateFileTypeStatus(this.converter.getFormatName(), statusMonitor.STATUSES.ERROR);
                 reject(err);
             });
